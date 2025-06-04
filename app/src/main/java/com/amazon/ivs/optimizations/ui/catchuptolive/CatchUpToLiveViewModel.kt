@@ -1,13 +1,20 @@
 package com.amazon.ivs.optimizations.ui.catchuptolive
 
 import android.content.Context
-import android.net.Uri
 import android.util.Size
 import android.view.Surface
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import com.amazon.ivs.optimizations.cache.PreferenceProvider
-import com.amazon.ivs.optimizations.common.*
-import com.amazon.ivs.optimizations.ui.models.*
+import com.amazon.ivs.optimizations.common.init
+import com.amazon.ivs.optimizations.common.launchIO
+import com.amazon.ivs.optimizations.common.shouldAdjustRate
+import com.amazon.ivs.optimizations.common.toDecimalSeconds
+import com.amazon.ivs.optimizations.ui.models.Error
+import com.amazon.ivs.optimizations.ui.models.InfoUpdate
+import com.amazon.ivs.optimizations.ui.models.MAX_QUALITY
+import com.amazon.ivs.optimizations.ui.models.STREAM_URI
+import com.amazon.ivs.optimizations.ui.models.UPDATE_DELAY
 import com.amazonaws.ivs.player.MediaPlayer
 import com.amazonaws.ivs.player.Player
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,7 +24,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import timber.log.Timber
-import java.util.*
+import java.util.Date
 import javax.inject.Inject
 
 const val MAX_BUFFER_SIZE = 5000
@@ -43,7 +50,7 @@ class CatchUpToLiveViewModel @Inject constructor(
 
     fun initPlayers(context: Context, surface: Surface) {
         _onBuffering.trySend(true)
-        player = MediaPlayer(context)
+        player = MediaPlayer.Builder(context).build()
         listener = player!!.init(
             { videoSizeState ->
                 _onSizeChanged.tryEmit(videoSizeState)
@@ -73,7 +80,7 @@ class CatchUpToLiveViewModel @Inject constructor(
         )
 
         player?.setSurface(surface)
-        player?.load(Uri.parse(preferences.playbackUrl ?: STREAM_URI))
+        player?.load((preferences.playbackUrl ?: STREAM_URI).toUri())
         player?.play()
         launchUpdates()
     }
